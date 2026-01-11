@@ -5,6 +5,7 @@ import {
   Header,
   ModeSwitcher,
   Gallery,
+  GalleryModal,
   EditMode,
   GenerateMode,
   VideoMode,
@@ -34,6 +35,7 @@ function App() {
       </main>
 
       <Gallery />
+      <GalleryModal />
     </>
   );
 }

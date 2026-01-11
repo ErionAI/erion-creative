@@ -10,7 +10,7 @@ import { MediaModal } from '../components/MediaModal';
 import { Panel } from '../components/Panel';
 import { AppStatus, AspectRatio, Resolution, VariationCount, ModelTier } from '@/types';
 
-const ASPECT_RATIOS: AspectRatio[] = ['1:1', '3:4', '4:3', '4:5', '5:4', '9:16', '16:9', '9:21'];
+const ASPECT_RATIOS: AspectRatio[] = ['1:1', '3:4', '4:3', '9:16', '16:9'];
 const RESOLUTIONS: Resolution[] = ['1K', '2K', '4K'];
 const VARIATIONS: VariationCount[] = [1, 2, 4];
 
@@ -24,10 +24,11 @@ interface GenerateModeState {
   variations: VariationCount;
   status: AppStatus;
   error: string | null;
+  modalIndex: number | null;
 }
 
 export function GenerateMode() {
-  const { addToGallery, setFocusedItemIndex } = useCreativeStore();
+  const { addToGallery } = useCreativeStore();
 
   const [state, setState] = useState<GenerateModeState>({
     resultImages: [],
@@ -37,30 +38,15 @@ export function GenerateMode() {
     variations: 1,
     status: AppStatus.IDLE,
     error: null,
+    modalIndex: null,
   });
 
   const { resultImages, prompt, resolution, aspectRatio, variations, status, error } = state;
 
-  const checkAndOpenApiKey = async () => {
-    if (window.aistudio) {
-      const hasKey = await window.aistudio.hasSelectedApiKey();
-      if (!hasKey) {
-        await window.aistudio.openSelectKey();
-      }
-      return true;
-    }
-    return false;
-  };
-
   const handleGenerate = async () => {
     if (!prompt.trim()) return;
 
-    if (resolution === '2K' || resolution === '4K') {
-      await checkAndOpenApiKey();
-    }
-
-    setState(prev => ({ ...prev, status: AppStatus.PROCESSING, error: null, resultImages: [] }));
-    setFocusedItemIndex(null);
+    setState(prev => ({ ...prev, status: AppStatus.PROCESSING, error: null, resultImages: [], modalIndex: null }));
 
     try {
       const results = await generateImage(
@@ -86,9 +72,6 @@ export function GenerateMode() {
       }
     } catch (err: any) {
       console.error(err);
-      if (err.message?.includes("re-select")) {
-        await window.aistudio?.openSelectKey();
-      }
       setState(prev => ({
         ...prev,
         error: err.message || "Something went wrong while generating.",
@@ -99,7 +82,13 @@ export function GenerateMode() {
 
   return (
     <>
-      <MediaModal type="image" resultImages={resultImages} />
+      <MediaModal
+        type="image"
+        resultImages={resultImages}
+        selectedIndex={state.modalIndex}
+        onClose={() => setState(prev => ({ ...prev, modalIndex: null }))}
+        onIndexChange={(index) => setState(prev => ({ ...prev, modalIndex: index }))}
+      />
       <section className="flex flex-col gap-6">
         <Panel icon={Settings2} title="Configuration">
           <div className="mb-4 md:mb-6">
@@ -186,6 +175,7 @@ export function GenerateMode() {
         resultImages={resultImages}
         resolution={resolution}
         aspectRatio={aspectRatio}
+        onImageClick={(index) => setState(prev => ({ ...prev, modalIndex: index }))}
       />
     </>
   );

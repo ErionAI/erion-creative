@@ -2,7 +2,6 @@
 
 import { Image as ImageIcon, Loader2, Maximize2 } from 'lucide-react';
 import { Button } from '@/components/Button';
-import { useCreativeStore } from '../store';
 import { AppStatus } from '@/types';
 
 interface StudioOutputProps {
@@ -13,6 +12,7 @@ interface StudioOutputProps {
   resultVideo?: string | null;
   resolution?: string;
   aspectRatio?: string;
+  onImageClick?: (index: number) => void;
 }
 
 export function StudioOutput({
@@ -23,8 +23,8 @@ export function StudioOutput({
   resultVideo = null,
   resolution,
   aspectRatio,
+  onImageClick,
 }: StudioOutputProps) {
-  const { setFocusedItemIndex } = useCreativeStore();
 
   return (
     <section className="bg-zinc-900/50 border border-zinc-800 rounded-xl md:rounded-2xl p-4 md:p-6 flex flex-col shadow-inner min-h-[300px] md:min-h-[500px]">
@@ -64,7 +64,7 @@ export function StudioOutput({
             <video src={resultVideo} controls className="w-full h-full object-contain rounded-lg shadow-xl" />
             <div className="mt-4 flex justify-between items-center px-2">
               <span className="text-xs text-zinc-500">Video: {resolution} • {aspectRatio}</span>
-              <Button onClick={() => setFocusedItemIndex(0)} variant="secondary" className="text-xs py-1">
+              <Button onClick={() => onImageClick?.(0)} variant="secondary" className="text-xs py-1">
                 <Maximize2 className="w-3 h-3" /> Fullscreen
               </Button>
             </div>
@@ -79,7 +79,7 @@ export function StudioOutput({
               <div
                 key={idx}
                 className="relative group overflow-hidden rounded-lg bg-black/40 cursor-pointer border border-zinc-800/50"
-                onClick={() => setFocusedItemIndex(idx)}
+                onClick={() => onImageClick?.(idx)}
               >
                 <img src={imgUrl} alt={`Result ${idx + 1}`} className="w-full h-full object-cover transition-transform group-hover:scale-105" />
                 <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center">

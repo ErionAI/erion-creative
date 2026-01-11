@@ -2,62 +2,53 @@
 
 import { useCallback } from 'react';
 import { Download, XCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useCreativeStore } from '../store';
 
-interface MediaModalProps {
-  type: 'image' | 'video';
-  resultImages?: string[];
-  resultVideo?: string | null;
-  selectedIndex: number | null;
-  onClose: () => void;
-  onIndexChange: (index: number | null) => void;
-}
+export function GalleryModal() {
+  const { gallery, focusedItemIndex, setFocusedItemIndex } = useCreativeStore();
 
-export function MediaModal({
-  type,
-  resultImages = [],
-  resultVideo = null,
-  selectedIndex,
-  onClose,
-  onIndexChange,
-}: MediaModalProps) {
+  const focusedItem = focusedItemIndex !== null ? gallery[focusedItemIndex] : null;
 
   const handleDownload = useCallback(() => {
-    const url = resultVideo || resultImages[selectedIndex || 0];
+    if (!focusedItem) return;
+    const url = focusedItem.resultUrls[0];
     if (!url) return;
-    const extension = resultVideo ? 'mp4' : 'png';
+    const extension = focusedItem.type === 'video' ? 'mp4' : 'png';
     const link = document.createElement('a');
     link.href = url;
-    link.download = `erion-${type}-${Date.now()}.${extension}`;
+    link.download = `erion-${focusedItem.type}-${Date.now()}.${extension}`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-  }, [resultVideo, resultImages, selectedIndex, type]);
+  }, [focusedItem]);
+
+  const handleClose = () => setFocusedItemIndex(null);
 
   const nextItem = () => {
-    if (selectedIndex !== null && resultImages.length > 0) {
-      onIndexChange((selectedIndex + 1) % resultImages.length);
+    if (focusedItemIndex !== null && gallery.length > 0) {
+      setFocusedItemIndex((focusedItemIndex + 1) % gallery.length);
     }
   };
 
   const prevItem = () => {
-    if (selectedIndex !== null && resultImages.length > 0) {
-      onIndexChange((selectedIndex - 1 + resultImages.length) % resultImages.length);
+    if (focusedItemIndex !== null && gallery.length > 0) {
+      setFocusedItemIndex((focusedItemIndex - 1 + gallery.length) % gallery.length);
     }
   };
 
-  if (selectedIndex === null || (!resultImages[selectedIndex] && !resultVideo)) {
+  if (!focusedItem) {
     return null;
   }
 
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-md p-4 animate-in fade-in duration-200"
-      onClick={onClose}
+      onClick={handleClose}
     >
       <div className="relative max-w-7xl w-full h-full flex flex-col items-center justify-center">
-        {resultVideo ? (
+        {focusedItem.type === 'video' ? (
           <video
-            src={resultVideo}
+            src={focusedItem.resultUrls[0]}
             controls
             autoPlay
             className="max-h-[85vh] max-w-full rounded-lg shadow-2xl"
@@ -65,7 +56,7 @@ export function MediaModal({
           />
         ) : (
           <img
-            src={resultImages[selectedIndex]}
+            src={focusedItem.resultUrls[0]}
             alt="Result"
             className="max-h-[85vh] max-w-full object-contain shadow-2xl rounded-lg"
             onClick={(e) => e.stopPropagation()}
@@ -73,13 +64,13 @@ export function MediaModal({
         )}
 
         <button
-          onClick={onClose}
+          onClick={handleClose}
           className="absolute top-4 right-4 p-2 bg-zinc-800/50 hover:bg-zinc-700 text-white rounded-full transition-colors"
         >
           <XCircle className="w-8 h-8" />
         </button>
 
-        {!resultVideo && resultImages.length > 1 && (
+        {gallery.length > 1 && (
           <>
             <button
               onClick={(e) => { e.stopPropagation(); prevItem(); }}
@@ -96,7 +87,8 @@ export function MediaModal({
           </>
         )}
 
-        <div className="absolute bottom-8 flex gap-4" onClick={(e) => e.stopPropagation()}>
+        <div className="absolute bottom-8 flex flex-col items-center gap-4" onClick={(e) => e.stopPropagation()}>
+          <p className="text-zinc-400 text-sm italic max-w-md text-center line-clamp-2">&ldquo;{focusedItem.prompt}&rdquo;</p>
           <button
             onClick={handleDownload}
             className="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-full font-medium shadow-lg hover:shadow-indigo-500/25 transition-all flex items-center gap-2"

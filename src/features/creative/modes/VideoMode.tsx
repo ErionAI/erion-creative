@@ -12,7 +12,7 @@ import { Panel } from '../components/Panel';
 import { ImageGrid } from '../components/ImageGrid';
 import { ImageFile, AppStatus, AspectRatio, VideoResolution } from '@/types';
 
-const ASPECT_RATIOS: AspectRatio[] = ['1:1', '3:4', '4:3', '4:5', '5:4', '9:16', '16:9', '9:21'];
+const ASPECT_RATIOS: AspectRatio[] = ['16:9', '9:16'];
 const RESOLUTIONS: VideoResolution[] = ['720p', '1080p'];
 
 interface VideoModeState {
@@ -23,19 +23,21 @@ interface VideoModeState {
   aspectRatio: AspectRatio;
   status: AppStatus;
   error: string | null;
+  modalOpen: boolean;
 }
 
 export function VideoMode() {
-  const { addToGallery, setFocusedItemIndex } = useCreativeStore();
+  const { addToGallery } = useCreativeStore();
 
   const [state, setState] = useState<VideoModeState>({
     sourceImage: null,
     resultVideo: null,
     prompt: '',
     resolution: '720p',
-    aspectRatio: '1:1',
+    aspectRatio: '16:9',
     status: AppStatus.IDLE,
     error: null,
+    modalOpen: false,
   });
 
   const { sourceImage, resultVideo, prompt, resolution, aspectRatio, status, error } = state;
@@ -59,24 +61,10 @@ export function VideoMode() {
     }));
   };
 
-  const checkAndOpenApiKey = async () => {
-    if (window.aistudio) {
-      const hasKey = await window.aistudio.hasSelectedApiKey();
-      if (!hasKey) {
-        await window.aistudio.openSelectKey();
-      }
-      return true;
-    }
-    return false;
-  };
-
   const handleGenerate = async () => {
     if (!prompt.trim()) return;
 
-    await checkAndOpenApiKey();
-
-    setState(prev => ({ ...prev, status: AppStatus.PROCESSING, error: null, resultVideo: null }));
-    setFocusedItemIndex(null);
+    setState(prev => ({ ...prev, status: AppStatus.PROCESSING, error: null, resultVideo: null, modalOpen: false }));
 
     try {
       const videoUrl = await generateVideo(
@@ -98,9 +86,6 @@ export function VideoMode() {
       });
     } catch (err: any) {
       console.error(err);
-      if (err.message?.includes("re-select")) {
-        await window.aistudio?.openSelectKey();
-      }
       setState(prev => ({
         ...prev,
         error: err.message || "Something went wrong while generating.",
@@ -113,7 +98,13 @@ export function VideoMode() {
 
   return (
     <>
-      <MediaModal type="video" resultVideo={resultVideo} />
+      <MediaModal
+        type="video"
+        resultVideo={resultVideo}
+        selectedIndex={state.modalOpen ? 0 : null}
+        onClose={() => setState(prev => ({ ...prev, modalOpen: false }))}
+        onIndexChange={(index) => setState(prev => ({ ...prev, modalOpen: index !== null }))}
+      />
       <section className="flex flex-col gap-6">
         <Panel icon={ImageIcon} title="Source Reference" subtitle={sourceImages.length > 0 ? "(1 used as start frame)" : undefined}>
           {sourceImages.length === 0 ? (
@@ -200,6 +191,7 @@ export function VideoMode() {
         resultVideo={resultVideo}
         resolution={resolution}
         aspectRatio={aspectRatio}
+        onImageClick={() => setState(prev => ({ ...prev, modalOpen: true }))}
       />
     </>
   );

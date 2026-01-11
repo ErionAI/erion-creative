@@ -4,7 +4,7 @@ import { LayoutGrid, Trash2, Play } from 'lucide-react';
 import { useCreativeStore } from '../store';
 
 export function Gallery() {
-  const { gallery, handleRestore, removeFromGallery } = useCreativeStore();
+  const { gallery, setFocusedItemIndex, removeFromGallery } = useCreativeStore();
 
   const handleDelete = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -25,7 +25,7 @@ export function Gallery() {
           <div
             key={item.id}
             className="group relative bg-zinc-900 border border-zinc-800 rounded-lg md:rounded-xl overflow-hidden cursor-pointer"
-            onClick={() => handleRestore(item)}
+            onClick={() => setFocusedItemIndex(gallery.indexOf(item))}
           >
             <div className="aspect-square relative overflow-hidden bg-black">
               {item.type === 'video' ? (
@@ -49,7 +49,7 @@ export function Gallery() {
                 </>
               )}
               <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
-                <span className="text-xs font-medium">Click to Restore</span>
+                <span className="text-xs font-medium">Click to View</span>
               </div>
               <button
                 onClick={(e) => handleDelete(item.id, e)}
