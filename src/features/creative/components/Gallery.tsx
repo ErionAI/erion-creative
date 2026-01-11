@@ -1,22 +1,40 @@
 "use client";
 
-import { useEffect } from 'react';
-import { LayoutGrid, Trash2, Play } from 'lucide-react';
+import { useEffect, useRef, useCallback } from 'react';
+import { LayoutGrid, Play } from 'lucide-react';
 import { useCreativeStore } from '../store';
 
 export function Gallery() {
-  const { gallery, loadGallery, setFocusedItemIndex, removeFromGallery } = useCreativeStore();
+  const { gallery, galleryLoading, hasMoreGallery, loadGallery, loadMoreGallery, setFocusedItemIndex } = useCreativeStore();
+  const observerRef = useRef<IntersectionObserver | null>(null);
+  const loadMoreRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     loadGallery();
   }, [loadGallery]);
 
-  const handleDelete = (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    removeFromGallery(id);
-  };
+  const handleObserver = useCallback((entries: IntersectionObserverEntry[]) => {
+    const [entry] = entries;
+    if (entry.isIntersecting && hasMoreGallery && !galleryLoading) {
+      loadMoreGallery();
+    }
+  }, [hasMoreGallery, galleryLoading, loadMoreGallery]);
 
-  if (gallery.length === 0) {
+  useEffect(() => {
+    if (observerRef.current) observerRef.current.disconnect();
+
+    observerRef.current = new IntersectionObserver(handleObserver, {
+      rootMargin: '100px',
+    });
+
+    if (loadMoreRef.current) {
+      observerRef.current.observe(loadMoreRef.current);
+    }
+
+    return () => observerRef.current?.disconnect();
+  }, [handleObserver]);
+
+  if (gallery.length === 0 && !galleryLoading) {
     return null;
   }
 
@@ -56,12 +74,6 @@ export function Gallery() {
               <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
                 <span className="text-xs font-medium">Click to View</span>
               </div>
-              <button
-                onClick={(e) => handleDelete(item.id, e)}
-                className="absolute top-1.5 left-1.5 md:top-2 md:left-2 p-1 md:p-1.5 bg-red-500/80 text-white rounded-full opacity-0 group-hover:opacity-100 cursor-pointer"
-              >
-                <Trash2 className="w-2.5 h-2.5 md:w-3 md:h-3" />
-              </button>
             </div>
             <div className="p-2 md:p-3 border-t border-zinc-800">
               <p className="text-[10px] md:text-xs text-zinc-400 line-clamp-1 italic">&ldquo;{item.prompt}&rdquo;</p>
@@ -72,6 +84,13 @@ export function Gallery() {
             </div>
           </div>
         ))}
+      </div>
+
+      {/* Infinite scroll trigger */}
+      <div ref={loadMoreRef} className="h-10 flex items-center justify-center">
+        {galleryLoading && (
+          <div className="w-5 h-5 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+        )}
       </div>
     </section>
   );
