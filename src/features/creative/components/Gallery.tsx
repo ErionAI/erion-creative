@@ -46,7 +46,7 @@ export function Gallery() {
               </div>
               <button
                 onClick={(e) => handleDelete(item.id, e)}
-                className="absolute top-1.5 left-1.5 md:top-2 md:left-2 p-1 md:p-1.5 bg-red-500/80 text-white rounded-full opacity-0 group-hover:opacity-100"
+                className="absolute top-1.5 left-1.5 md:top-2 md:left-2 p-1 md:p-1.5 bg-red-500/80 text-white rounded-full opacity-0 group-hover:opacity-100 cursor-pointer"
               >
                 <Trash2 className="w-2.5 h-2.5 md:w-3 md:h-3" />
               </button>

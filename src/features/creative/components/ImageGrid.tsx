@@ -50,7 +50,7 @@ export function ImageGrid({
           <img src={img.preview} alt={`Source ${idx + 1}`} className="w-full h-full object-cover" />
           <button
             onClick={() => onRemoveImage(idx)}
-            className="absolute top-2 right-2 p-1.5 bg-red-500/90 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+            className="absolute top-2 right-2 p-1.5 bg-red-500/90 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
           >
             <X className="w-3 h-3" />
           </button>
