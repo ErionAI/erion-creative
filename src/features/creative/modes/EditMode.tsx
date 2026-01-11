@@ -11,7 +11,7 @@ import { StudioOutput } from '../components/StudioOutput';
 import { MediaModal } from '../components/MediaModal';
 import { Panel } from '../components/Panel';
 import { ImageGrid } from '../components/ImageGrid';
-import { ImageFile, AppStatus, AspectRatio, Resolution, VariationCount, ModelTier } from '@/types';
+import { AppStatus, AspectRatio, Resolution, VariationCount, ModelTier } from '@/types';
 
 const ASPECT_RATIOS: AspectRatio[] = ['1:1', '3:4', '4:3', '9:16', '16:9'];
 const RESOLUTIONS: Resolution[] = ['1K', '2K', '4K'];
@@ -19,9 +19,8 @@ const VARIATIONS: VariationCount[] = [1, 2, 4];
 
 const getModelTier = (resolution: Resolution): ModelTier => resolution === '1K' ? 'Basic' : 'Pro';
 
-interface SourceImage extends ImageFile {
+interface SourceImage extends UploadedFile {
   resourceId?: string;
-  file?: File;
 }
 
 interface EditModeState {
@@ -91,10 +90,7 @@ export function EditMode() {
     const imageFiles = files.filter(f => f.mimeType.startsWith('image/'));
     setState(prev => ({
       ...prev,
-      sourceImages: [...prev.sourceImages, ...imageFiles.map(f => ({
-        ...f,
-        file: 'file' in f ? (f as UploadedFile & { file: File }).file : undefined,
-      }))],
+      sourceImages: [...prev.sourceImages, ...imageFiles],
       resultImages: [],
       status: AppStatus.IDLE,
       error: null,

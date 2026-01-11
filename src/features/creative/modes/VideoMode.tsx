@@ -12,14 +12,13 @@ import { StudioOutput } from '../components/StudioOutput';
 import { MediaModal } from '../components/MediaModal';
 import { Panel } from '../components/Panel';
 import { ImageGrid } from '../components/ImageGrid';
-import { ImageFile, AppStatus, AspectRatio, VideoResolution } from '@/types';
+import { AppStatus, AspectRatio, VideoResolution } from '@/types';
 
 const ASPECT_RATIOS: AspectRatio[] = ['16:9', '9:16'];
 const RESOLUTIONS: VideoResolution[] = ['720p', '1080p'];
 
-interface SourceImage extends ImageFile {
+interface SourceImage extends UploadedFile {
   resourceId?: string;
-  file?: File;
 }
 
 interface VideoModeState {
@@ -88,10 +87,7 @@ export function VideoMode() {
     if (imageFile) {
       setState(prev => ({
         ...prev,
-        sourceImage: {
-          ...imageFile,
-          file: 'file' in imageFile ? (imageFile as UploadedFile & { file: File }).file : undefined,
-        },
+        sourceImage: imageFile,
         resultVideo: null,
         status: AppStatus.IDLE,
         error: null,

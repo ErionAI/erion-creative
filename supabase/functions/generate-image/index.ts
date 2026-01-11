@@ -144,7 +144,7 @@ async function processGeneration(
       const path = `images/${userId}/${generationId}/${i}.png`;
 
       const { error: uploadError } = await supabase.storage
-        .from('asset')
+        .from('assets')
         .upload(path, buffer, { contentType: 'image/png' });
 
       if (uploadError) {
@@ -152,7 +152,7 @@ async function processGeneration(
         continue;
       }
 
-      const { data: urlData } = supabase.storage.from('asset').getPublicUrl(path);
+      const { data: urlData } = supabase.storage.from('assets').getPublicUrl(path);
       resultUrls.push(urlData.publicUrl);
     }
 

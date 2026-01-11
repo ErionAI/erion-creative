@@ -100,7 +100,7 @@ async function processVideo(
 
       if (resource) {
         const { data: fileData } = await supabase.storage
-          .from('resource')
+          .from('resources')
           .download(resource.storage_path);
 
         if (fileData) {
@@ -154,14 +154,14 @@ async function processVideo(
 
     // Upload to storage
     const { error: uploadError } = await supabase.storage
-      .from('asset')
+      .from('assets')
       .upload(path, new Uint8Array(videoBuffer), { contentType: 'video/mp4' });
 
     if (uploadError) {
       throw new Error(`Failed to upload video: ${uploadError.message}`);
     }
 
-    const { data: urlData } = supabase.storage.from('asset').getPublicUrl(path);
+    const { data: urlData } = supabase.storage.from('assets').getPublicUrl(path);
 
     await supabase
       .from('generations')

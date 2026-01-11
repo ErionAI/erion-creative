@@ -1,6 +1,7 @@
 import React, { useRef, useState } from 'react';
 
 export interface UploadedFile {
+  file: File;
   data: string;
   mimeType: string;
   preview: string;
@@ -57,6 +58,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
           const result = reader.result as string;
           const base64Data = result.split(',')[1];
           resolve({
+            file,
             data: base64Data,
             mimeType: file.type,
             preview: result

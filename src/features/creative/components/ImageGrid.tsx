@@ -30,6 +30,7 @@ export function ImageGrid({
           reader.onloadend = () => {
             const result = reader.result as string;
             resolve({
+              file,
               data: result.split(',')[1],
               mimeType: file.type,
               preview: result

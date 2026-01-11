@@ -105,7 +105,7 @@ async function processEdit(
     const sourceImages: { data: string; mimeType: string }[] = [];
     for (const resource of resources) {
       const { data: fileData, error: downloadError } = await supabase.storage
-        .from('resource')
+        .from('resources')
         .download(resource.storage_path);
 
       if (downloadError) {
@@ -184,7 +184,7 @@ async function processEdit(
       const path = `images/${userId}/${generationId}/${i}.png`;
 
       const { error: uploadError } = await supabase.storage
-        .from('asset')
+        .from('assets')
         .upload(path, buffer, { contentType: 'image/png' });
 
       if (uploadError) {
@@ -192,7 +192,7 @@ async function processEdit(
         continue;
       }
 
-      const { data: urlData } = supabase.storage.from('asset').getPublicUrl(path);
+      const { data: urlData } = supabase.storage.from('assets').getPublicUrl(path);
       resultUrls.push(urlData.publicUrl);
     }
 
