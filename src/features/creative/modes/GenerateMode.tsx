@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Settings2, Sparkles, Frame, Scaling, Layers } from 'lucide-react';
-import { generateImage } from '@/services/generateService';
+import { startImageGeneration } from '@/services/generateService';
+import { useGeneration, type Generation } from '@/hooks/useGeneration';
 import { Button } from '@/components/Button';
 import { useCreativeStore } from '../store';
 import { StudioOutput } from '../components/StudioOutput';
@@ -43,38 +44,66 @@ export function GenerateMode() {
 
   const { resultImages, prompt, resolution, aspectRatio, variations, status, error } = state;
 
+  const handleGenerationSuccess = useCallback((generation: Generation) => {
+    const urls = generation.result_urls ?? [];
+    if (urls.length > 0) {
+      setState(prev => ({
+        ...prev,
+        resultImages: urls,
+        status: AppStatus.SUCCESS,
+      }));
+      addToGallery({
+        id: generation.id,
+        type: 'image',
+        resultUrls: urls,
+        sourceImages: [],
+        prompt: generation.prompt,
+        timestamp: new Date(generation.created_at).getTime(),
+        resolution: generation.resolution ?? undefined,
+        aspectRatio: (generation.aspect_ratio as AspectRatio) ?? undefined,
+      });
+    }
+  }, [addToGallery]);
+
+  const handleGenerationError = useCallback((errorMessage: string) => {
+    setState(prev => ({
+      ...prev,
+      error: errorMessage,
+      status: AppStatus.ERROR,
+    }));
+  }, []);
+
+  const { startPolling } = useGeneration({
+    onSuccess: handleGenerationSuccess,
+    onError: handleGenerationError,
+  });
+
   const handleGenerate = async () => {
     if (!prompt.trim()) return;
 
-    setState(prev => ({ ...prev, status: AppStatus.PROCESSING, error: null, resultImages: [], modalIndex: null }));
+    setState(prev => ({
+      ...prev,
+      status: AppStatus.PROCESSING,
+      error: null,
+      resultImages: [],
+      modalIndex: null,
+    }));
 
     try {
-      const results = await generateImage(
+      const generationId = await startImageGeneration({
         prompt,
-        getModelTier(resolution),
+        modelTier: getModelTier(resolution),
         resolution,
         aspectRatio,
-        variations
-      );
+        variations,
+      });
 
-      if (results && results.length > 0) {
-        setState(prev => ({ ...prev, resultImages: results, status: AppStatus.SUCCESS }));
-        addToGallery({
-          id: Date.now().toString(),
-          type: 'image',
-          resultUrls: results,
-          sourceImages: [],
-          prompt: prompt,
-          timestamp: Date.now(),
-          resolution: resolution,
-          aspectRatio: aspectRatio
-        });
-      }
+      startPolling(generationId);
     } catch (err: any) {
       console.error(err);
       setState(prev => ({
         ...prev,
-        error: err.message || "Something went wrong while generating.",
+        error: err.message || 'Something went wrong while generating.',
         status: AppStatus.ERROR,
       }));
     }

@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Settings2, Sparkles, Frame, Upload, Scaling, ImageIcon } from 'lucide-react';
-import { generateVideo } from '@/services/videoService';
+import { startVideoGeneration } from '@/services/videoService';
+import { uploadSourceImage } from '@/services/editService';
+import { useGeneration, type Generation } from '@/hooks/useGeneration';
 import { FileUpload, UploadedFile } from '@/components/FileUpload';
 import { Button } from '@/components/Button';
 import { useCreativeStore } from '../store';
@@ -15,8 +17,13 @@ import { ImageFile, AppStatus, AspectRatio, VideoResolution } from '@/types';
 const ASPECT_RATIOS: AspectRatio[] = ['16:9', '9:16'];
 const RESOLUTIONS: VideoResolution[] = ['720p', '1080p'];
 
+interface SourceImage extends ImageFile {
+  resourceId?: string;
+  file?: File;
+}
+
 interface VideoModeState {
-  sourceImage: ImageFile | null;
+  sourceImage: SourceImage | null;
   resultVideo: string | null;
   prompt: string;
   resolution: VideoResolution;
@@ -42,15 +49,54 @@ export function VideoMode() {
 
   const { sourceImage, resultVideo, prompt, resolution, aspectRatio, status, error } = state;
 
-  const handleFilesSelected = (files: UploadedFile[]) => {
-    const imageFile = files.find(f => f.mimeType.startsWith('image/')) || null;
+  const handleGenerationSuccess = useCallback((generation: Generation) => {
+    const urls = generation.result_urls ?? [];
+    if (urls.length > 0) {
+      setState(prev => ({
+        ...prev,
+        resultVideo: urls[0],
+        status: AppStatus.SUCCESS,
+      }));
+      addToGallery({
+        id: generation.id,
+        type: 'video',
+        resultUrls: urls,
+        sourceImages: [],
+        prompt: generation.prompt,
+        timestamp: new Date(generation.created_at).getTime(),
+        resolution: generation.resolution ?? undefined,
+        aspectRatio: (generation.aspect_ratio as AspectRatio) ?? undefined,
+      });
+    }
+  }, [addToGallery]);
+
+  const handleGenerationError = useCallback((errorMessage: string) => {
     setState(prev => ({
       ...prev,
-      sourceImage: imageFile,
-      resultVideo: null,
-      status: AppStatus.IDLE,
-      error: null,
+      error: errorMessage,
+      status: AppStatus.ERROR,
     }));
+  }, []);
+
+  const { startPolling } = useGeneration({
+    onSuccess: handleGenerationSuccess,
+    onError: handleGenerationError,
+  });
+
+  const handleFilesSelected = (files: UploadedFile[]) => {
+    const imageFile = files.find(f => f.mimeType.startsWith('image/'));
+    if (imageFile) {
+      setState(prev => ({
+        ...prev,
+        sourceImage: {
+          ...imageFile,
+          file: 'file' in imageFile ? (imageFile as UploadedFile & { file: File }).file : undefined,
+        },
+        resultVideo: null,
+        status: AppStatus.IDLE,
+        error: null,
+      }));
+    }
   };
 
   const handleRemoveImage = () => {
@@ -64,31 +110,39 @@ export function VideoMode() {
   const handleGenerate = async () => {
     if (!prompt.trim()) return;
 
-    setState(prev => ({ ...prev, status: AppStatus.PROCESSING, error: null, resultVideo: null, modalOpen: false }));
+    setState(prev => ({
+      ...prev,
+      status: AppStatus.PROCESSING,
+      error: null,
+      resultVideo: null,
+      modalOpen: false,
+    }));
 
     try {
-      const videoUrl = await generateVideo(
+      let resourceId: string | undefined;
+
+      // Upload source image if provided
+      if (sourceImage) {
+        if (sourceImage.resourceId) {
+          resourceId = sourceImage.resourceId;
+        } else if (sourceImage.file) {
+          resourceId = await uploadSourceImage(sourceImage.file);
+        }
+      }
+
+      const generationId = await startVideoGeneration({
         prompt,
-        sourceImage ? { data: sourceImage.data, mimeType: sourceImage.mimeType } : undefined,
         resolution,
-        aspectRatio
-      );
-      setState(prev => ({ ...prev, resultVideo: videoUrl, status: AppStatus.SUCCESS }));
-      addToGallery({
-        id: Date.now().toString(),
-        type: 'video',
-        resultUrls: [videoUrl],
-        sourceImages: sourceImage ? [sourceImage] : [],
-        prompt: prompt,
-        timestamp: Date.now(),
-        resolution: resolution,
-        aspectRatio: aspectRatio
+        aspectRatio,
+        resourceId,
       });
-    } catch (err: any) {
+
+      startPolling(generationId);
+    } catch (err: unknown) {
       console.error(err);
       setState(prev => ({
         ...prev,
-        error: err.message || "Something went wrong while generating.",
+        error: err instanceof Error ? err.message : 'Something went wrong while generating.',
         status: AppStatus.ERROR,
       }));
     }

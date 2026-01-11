@@ -1,27 +1,35 @@
-import { VideoResolution, AspectRatio } from "@/types";
+import { createClient } from '@/lib/supabase';
+import { VideoResolution, AspectRatio } from '@/types';
 
-export const generateVideo = async (
-  prompt: string,
-  sourceImage?: { data: string; mimeType: string },
-  resolution: VideoResolution = '720p',
-  aspectRatio: AspectRatio = '16:9'
+export interface GenerateVideoParams {
+  prompt: string;
+  resolution: VideoResolution;
+  aspectRatio: AspectRatio;
+  resourceId?: string; // Optional start frame
+}
+
+export const startVideoGeneration = async (
+  params: GenerateVideoParams
 ): Promise<string> => {
-  const response = await fetch('/api/creative/video', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      prompt,
-      sourceImage,
-      resolution,
-      aspectRatio
-    })
-  });
+  const supabase = createClient();
 
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || 'Failed to generate video');
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) {
+    throw new Error('Authentication required');
   }
 
-  return data.result;
+  const response = await supabase.functions.invoke('generate-video', {
+    body: {
+      prompt: params.prompt,
+      resolution: params.resolution,
+      aspect_ratio: params.aspectRatio,
+      resource_id: params.resourceId,
+    },
+  });
+
+  if (response.error) {
+    throw new Error(response.error.message || 'Failed to start video generation');
+  }
+
+  return response.data.generation_id;
 };

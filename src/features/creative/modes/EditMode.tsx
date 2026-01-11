@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Settings2, Sparkles, Frame, Upload, Scaling, ImageIcon, Layers } from 'lucide-react';
-import { editImage } from '@/services/editService';
+import { uploadSourceImage, startImageEdit } from '@/services/editService';
+import { useGeneration, type Generation } from '@/hooks/useGeneration';
 import { FileUpload, UploadedFile } from '@/components/FileUpload';
 import { Button } from '@/components/Button';
 import { useCreativeStore } from '../store';
@@ -18,8 +19,13 @@ const VARIATIONS: VariationCount[] = [1, 2, 4];
 
 const getModelTier = (resolution: Resolution): ModelTier => resolution === '1K' ? 'Basic' : 'Pro';
 
+interface SourceImage extends ImageFile {
+  resourceId?: string;
+  file?: File;
+}
+
 interface EditModeState {
-  sourceImages: ImageFile[];
+  sourceImages: SourceImage[];
   resultImages: string[];
   prompt: string;
   resolution: Resolution;
@@ -47,11 +53,48 @@ export function EditMode() {
 
   const { sourceImages, resultImages, prompt, resolution, aspectRatio, variations, status, error } = state;
 
+  const handleGenerationSuccess = useCallback((generation: Generation) => {
+    const urls = generation.result_urls ?? [];
+    if (urls.length > 0) {
+      setState(prev => ({
+        ...prev,
+        resultImages: urls,
+        status: AppStatus.SUCCESS,
+      }));
+      addToGallery({
+        id: generation.id,
+        type: 'image',
+        resultUrls: urls,
+        sourceImages: [],
+        prompt: generation.prompt,
+        timestamp: new Date(generation.created_at).getTime(),
+        resolution: generation.resolution ?? undefined,
+        aspectRatio: (generation.aspect_ratio as AspectRatio) ?? undefined,
+      });
+    }
+  }, [addToGallery]);
+
+  const handleGenerationError = useCallback((errorMessage: string) => {
+    setState(prev => ({
+      ...prev,
+      error: errorMessage,
+      status: AppStatus.ERROR,
+    }));
+  }, []);
+
+  const { startPolling } = useGeneration({
+    onSuccess: handleGenerationSuccess,
+    onError: handleGenerationError,
+  });
+
   const handleFilesSelected = (files: UploadedFile[]) => {
     const imageFiles = files.filter(f => f.mimeType.startsWith('image/'));
     setState(prev => ({
       ...prev,
-      sourceImages: [...prev.sourceImages, ...imageFiles],
+      sourceImages: [...prev.sourceImages, ...imageFiles.map(f => ({
+        ...f,
+        file: 'file' in f ? (f as UploadedFile & { file: File }).file : undefined,
+      }))],
       resultImages: [],
       status: AppStatus.IDLE,
       error: null,
@@ -70,36 +113,41 @@ export function EditMode() {
     if (sourceImages.length === 0) return;
     if (!prompt.trim()) return;
 
-    setState(prev => ({ ...prev, status: AppStatus.PROCESSING, error: null, resultImages: [], modalIndex: null }));
+    setState(prev => ({
+      ...prev,
+      status: AppStatus.PROCESSING,
+      error: null,
+      resultImages: [],
+      modalIndex: null,
+    }));
 
     try {
-      const results = await editImage(
-        sourceImages.map(img => ({ data: img.data, mimeType: img.mimeType })),
+      // Upload images first and get resource IDs
+      const resourceIds: string[] = [];
+      for (const img of sourceImages) {
+        if (img.resourceId) {
+          resourceIds.push(img.resourceId);
+        } else if (img.file) {
+          const resourceId = await uploadSourceImage(img.file);
+          resourceIds.push(resourceId);
+        }
+      }
+
+      const generationId = await startImageEdit({
+        resourceIds,
         prompt,
-        getModelTier(resolution),
+        modelTier: getModelTier(resolution),
         resolution,
         aspectRatio,
-        variations
-      );
+        variations,
+      });
 
-      if (results && results.length > 0) {
-        setState(prev => ({ ...prev, resultImages: results, status: AppStatus.SUCCESS }));
-        addToGallery({
-          id: Date.now().toString(),
-          type: 'image',
-          resultUrls: results,
-          sourceImages: sourceImages,
-          prompt: prompt,
-          timestamp: Date.now(),
-          resolution: resolution,
-          aspectRatio: aspectRatio
-        });
-      }
-    } catch (err: any) {
+      startPolling(generationId);
+    } catch (err: unknown) {
       console.error(err);
       setState(prev => ({
         ...prev,
-        error: err.message || "Something went wrong while generating.",
+        error: err instanceof Error ? err.message : 'Something went wrong while generating.',
         status: AppStatus.ERROR,
       }));
     }

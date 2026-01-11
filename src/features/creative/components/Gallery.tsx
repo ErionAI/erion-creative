@@ -1,10 +1,15 @@
 "use client";
 
+import { useEffect } from 'react';
 import { LayoutGrid, Trash2, Play } from 'lucide-react';
 import { useCreativeStore } from '../store';
 
 export function Gallery() {
-  const { gallery, setFocusedItemIndex, removeFromGallery } = useCreativeStore();
+  const { gallery, loadGallery, setFocusedItemIndex, removeFromGallery } = useCreativeStore();
+
+  useEffect(() => {
+    loadGallery();
+  }, [loadGallery]);
 
   const handleDelete = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
