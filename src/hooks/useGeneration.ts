@@ -1,11 +1,12 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { createClient } from '@/lib/supabase';
 import type { Database } from '@/lib/supabase/types';
 
 type Generation = Database['public']['Tables']['generations']['Row'];
 type GenerationStatus = 'pending' | 'processing' | 'success' | 'error';
 
-const POLL_INTERVAL = 2000; // 2 seconds
+const POLL_INTERVAL = 5000;
 
 interface UseGenerationOptions {
   onSuccess?: (generation: Generation) => void;
@@ -23,83 +24,67 @@ interface UseGenerationReturn {
 
 export type { Generation };
 
+const fetchGeneration = async (id: string): Promise<Generation> => {
+  const supabase = createClient();
+
+  const { data, error } = await supabase
+    .from('generations')
+    .select('*')
+    .eq('id', id)
+    .single();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data;
+};
+
 export function useGeneration(options?: UseGenerationOptions): UseGenerationReturn {
   const [generationId, setGenerationId] = useState<string | null>(null);
-  const [generation, setGeneration] = useState<Generation | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchGeneration = useCallback(async (id: string) => {
-    const supabase = createClient();
-
-    const { data, error: fetchError } = await supabase
-      .from('generations')
-      .select('*')
-      .eq('id', id)
-      .single();
-
-    if (fetchError) {
-      setError(fetchError.message);
-      setIsLoading(false);
-      return null;
-    }
-
-    return data as Generation;
-  }, []);
+  const optionsRef = useRef(options);
 
   useEffect(() => {
-    if (!generationId) return;
+    optionsRef.current = options;
+  }, [options]);
 
-    let intervalId: NodeJS.Timeout | null = null;
-    let isMounted = true;
-
-    const poll = async () => {
-      const data = await fetchGeneration(generationId);
-
-      if (!isMounted || !data) return;
-
-      setGeneration(data);
-
-      if (data.status === 'success') {
-        setIsLoading(false);
-        if (intervalId) clearInterval(intervalId);
-        options?.onSuccess?.(data);
-      } else if (data.status === 'error') {
-        setIsLoading(false);
-        setError(data.error_message || 'Generation failed');
-        if (intervalId) clearInterval(intervalId);
-        options?.onError?.(data.error_message || 'Generation failed');
+  const { data: generation, error, isLoading } = useQuery({
+    queryKey: ['generation', generationId],
+    queryFn: () => fetchGeneration(generationId!),
+    enabled: !!generationId,
+    refetchInterval: (query) => {
+      const data = query.state.data;
+      if (!data) return POLL_INTERVAL;
+      if (data.status === 'success' || data.status === 'error') {
+        return false;
       }
-      // Continue polling if status is 'pending' or 'processing'
-    };
+      return POLL_INTERVAL;
+    },
+  });
 
-    setIsLoading(true);
-    setError(null);
-    poll();
-    intervalId = setInterval(poll, POLL_INTERVAL);
+  useEffect(() => {
+    if (!generation) return;
 
-    return () => {
-      isMounted = false;
-      if (intervalId) clearInterval(intervalId);
-    };
-  }, [generationId, fetchGeneration, options]);
+    if (generation.status === 'success') {
+      optionsRef.current?.onSuccess?.(generation);
+    } else if (generation.status === 'error') {
+      optionsRef.current?.onError?.(generation.error_message || 'Generation failed');
+    }
+  }, [generation]);
 
   const startPolling = useCallback((id: string) => {
-    setGeneration(null);
-    setError(null);
     setGenerationId(id);
   }, []);
 
   const stopPolling = useCallback(() => {
     setGenerationId(null);
-    setIsLoading(false);
   }, []);
 
   return {
-    generation,
+    generation: generation ?? null,
     status: (generation?.status as GenerationStatus) ?? null,
-    isLoading,
-    error,
+    isLoading: isLoading && !!generationId,
+    error: error?.message ?? null,
     startPolling,
     stopPolling,
   };

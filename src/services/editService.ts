@@ -21,10 +21,10 @@ export const uploadSourceImage = async (
   }
 
   const ext = file.name.split('.').pop() || 'png';
-  const fileName = `${user.id}/${crypto.randomUUID()}.${ext}`;
+  const fileName = `images/${crypto.randomUUID()}.${ext}`;
 
   const { error: uploadError } = await supabase.storage
-    .from('resource')
+    .from('resources')
     .upload(fileName, file);
 
   if (uploadError) {
