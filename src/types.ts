@@ -14,6 +14,7 @@ export type Resolution = '1K' | '2K' | '4K';
 export type VideoResolution = '720p' | '1080p';
 export type AspectRatio = '1:1' | '3:4' | '4:3' | '4:5' | '5:4' | '9:21' | '16:9' | '9:16';
 export type VariationCount = 1 | 2 | 4;
+export type ModelTier = 'Basic' | 'Pro';
 
 export type GalleryItemType = 'image' | 'video';
 

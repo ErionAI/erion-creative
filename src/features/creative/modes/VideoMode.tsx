@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from 'react';
-import { Settings2, Key, Sparkles, Frame, Upload, Scaling, ImageIcon } from 'lucide-react';
-import { generateVideoWithVeo } from '@/services/geminiService';
+import { Settings2, Sparkles, Frame, Upload, Scaling, ImageIcon } from 'lucide-react';
+import { generateVideo } from '@/services/videoService';
 import { FileUpload, UploadedFile } from '@/components/FileUpload';
 import { Button } from '@/components/Button';
 import { useCreativeStore } from '../store';
@@ -79,7 +79,7 @@ export function VideoMode() {
     setFocusedItemIndex(null);
 
     try {
-      const videoUrl = await generateVideoWithVeo(
+      const videoUrl = await generateVideo(
         prompt,
         sourceImage ? { data: sourceImage.data, mimeType: sourceImage.mimeType } : undefined,
         resolution,
@@ -146,13 +146,14 @@ export function VideoMode() {
                 <button
                   key={res}
                   onClick={() => setState(s => ({ ...s, resolution: res }))}
-                  className={`px-2 py-2 rounded-lg text-xs font-medium border transition-all ${
+                  className={`px-2 py-2 rounded-lg text-xs font-medium border transition-all flex items-center justify-center gap-1 ${
                     resolution === res
                     ? 'bg-indigo-600/20 border-indigo-500 text-indigo-300 ring-1 ring-indigo-500/50'
                     : 'bg-zinc-950 border-zinc-800 text-zinc-500 hover:border-zinc-700 hover:text-zinc-300 cursor-pointer'
                   }`}
                 >
                   {res}
+                  <span className="text-[9px] bg-indigo-500/30 text-indigo-300 px-1 rounded">Pro</span>
                 </button>
               ))}
             </div>
@@ -190,7 +191,6 @@ export function VideoMode() {
             <Sparkles className="w-5 h-5" />
             Create Cinematic Video
           </Button>
-          <p className="text-[10px] text-zinc-500 mt-2 text-center flex items-center justify-center gap-1"><Key className="w-3 h-3" /> Requires Paid Google Project API Key.</p>
         </Panel>
       </section>
       <StudioOutput
