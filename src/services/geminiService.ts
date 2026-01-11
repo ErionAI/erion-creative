@@ -1,6 +1,6 @@
 
 import { GoogleGenAI } from "@google/genai";
-import { Resolution, VideoResolution, AspectRatio } from "@/types";
+import { Resolution, VideoResolution, AspectRatio, VariationCount } from "@/types";
 
 /**
  * Maps a requested aspect ratio to one supported by the API to prevent 400 errors.
@@ -27,13 +27,14 @@ const getSupportedRatio = (requested: AspectRatio, modelType: 'IMAGE' | 'VIDEO')
 };
 
 /**
- * Generates 4 variations of images using Gemini models.
+ * Generates images using Gemini models.
  */
 export const generateImageWithGemini = async (
   images: { data: string; mimeType: string }[],
   prompt: string,
   resolution: Resolution = '1K',
-  aspectRatio: AspectRatio = '1:1'
+  aspectRatio: AspectRatio = '1:1',
+  variations: VariationCount = 4
 ): Promise<string[]> => {
   try {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
@@ -91,7 +92,7 @@ export const generateImageWithGemini = async (
       }
     };
 
-    const results = await Promise.all([1, 2, 3, 4].map(() => generateSingle()));
+    const results = await Promise.all(Array.from({ length: variations }, () => generateSingle()));
     const successfulUrls = results.filter((url): url is string => url !== null);
 
     if (successfulUrls.length === 0) throw new Error("Failed to generate any images.");

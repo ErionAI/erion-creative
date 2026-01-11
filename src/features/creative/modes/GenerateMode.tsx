@@ -1,23 +1,25 @@
 "use client";
 
 import { useState } from 'react';
-import { Settings2, Key, Sparkles, Frame, Scaling } from 'lucide-react';
+import { Settings2, Key, Sparkles, Frame, Scaling, Layers } from 'lucide-react';
 import { generateImageWithGemini } from '@/services/geminiService';
 import { Button } from '@/components/Button';
 import { useCreativeStore } from '../store';
 import { StudioOutput } from '../components/StudioOutput';
 import { MediaModal } from '../components/MediaModal';
 import { Panel } from '../components/Panel';
-import { AppStatus, AspectRatio, Resolution } from '@/types';
+import { AppStatus, AspectRatio, Resolution, VariationCount } from '@/types';
 
 const ASPECT_RATIOS: AspectRatio[] = ['1:1', '3:4', '4:3', '4:5', '5:4', '9:16', '16:9', '9:21'];
 const RESOLUTIONS: Resolution[] = ['1K', '2K', '4K'];
+const VARIATIONS: VariationCount[] = [1, 2, 4];
 
 interface GenerateModeState {
   resultImages: string[];
   prompt: string;
   resolution: Resolution;
   aspectRatio: AspectRatio;
+  variations: VariationCount;
   status: AppStatus;
   error: string | null;
 }
@@ -30,11 +32,12 @@ export function GenerateMode() {
     prompt: '',
     resolution: '1K',
     aspectRatio: '1:1',
+    variations: 1,
     status: AppStatus.IDLE,
     error: null,
   });
 
-  const { resultImages, prompt, resolution, aspectRatio, status, error } = state;
+  const { resultImages, prompt, resolution, aspectRatio, variations, status, error } = state;
 
   const checkAndOpenApiKey = async () => {
     if (window.aistudio) {
@@ -62,7 +65,8 @@ export function GenerateMode() {
         [],
         prompt,
         resolution,
-        aspectRatio
+        aspectRatio,
+        variations
       );
 
       if (results && results.length > 0) {
@@ -139,6 +143,27 @@ export function GenerateMode() {
             </div>
           </div>
 
+          <div className="mb-4 md:mb-6">
+            <label className="text-xs text-zinc-500 font-medium uppercase tracking-wider mb-2 md:mb-3 block flex items-center gap-2">
+              <Layers className="w-3.5 h-3.5" /> Variations
+            </label>
+            <div className="grid grid-cols-3 md:grid-cols-4 gap-1.5 md:gap-2">
+              {VARIATIONS.map((count) => (
+                <button
+                  key={count}
+                  onClick={() => setState(s => ({ ...s, variations: count }))}
+                  className={`px-2 py-2 rounded-lg text-xs font-medium border transition-all ${
+                    variations === count
+                    ? 'bg-indigo-600/20 border-indigo-500 text-indigo-300 ring-1 ring-indigo-500/50'
+                    : 'bg-zinc-950 border-zinc-800 text-zinc-500 hover:border-zinc-700 hover:text-zinc-300 cursor-pointer'
+                  }`}
+                >
+                  {count}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <textarea
             value={prompt}
             onChange={(e) => setState(s => ({ ...s, prompt: e.target.value }))}
@@ -148,7 +173,7 @@ export function GenerateMode() {
 
           <Button onClick={handleGenerate} isLoading={status === AppStatus.PROCESSING} className="w-full py-3 md:py-4 text-base md:text-lg">
             <Sparkles className="w-5 h-5" />
-            Generate 4 Variations
+            Generate {variations} Variation{variations > 1 ? 's' : ''}
           </Button>
           {resolution !== '1K' && <p className="text-[10px] text-zinc-500 mt-2 text-center flex items-center justify-center gap-1"><Key className="w-3 h-3" /> Requires Paid Google Project API Key.</p>}
         </Panel>

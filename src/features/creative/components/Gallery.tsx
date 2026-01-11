@@ -39,7 +39,14 @@ export function Gallery() {
                   </div>
                 </div>
               ) : (
-                <img src={item.resultUrls[0]} className="w-full h-full object-cover" />
+                <>
+                  <img src={item.resultUrls[0]} alt={item.prompt} className="w-full h-full object-cover" />
+                  {item.resultUrls.length > 1 && (
+                    <div className="absolute top-1.5 right-1.5 md:top-2 md:right-2 bg-zinc-800 px-1.5 md:px-2 py-0.5 rounded-full text-[8px] md:text-[10px] font-bold">
+                      +{item.resultUrls.length - 1}
+                    </div>
+                  )}
+                </>
               )}
               <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
                 <span className="text-xs font-medium">Click to Restore</span>

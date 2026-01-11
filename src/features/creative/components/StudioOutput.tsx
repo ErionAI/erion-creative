@@ -72,7 +72,9 @@ export function StudioOutput({
         )}
 
         {resultImages.length > 0 && (
-          <div className="grid grid-cols-2 gap-2 p-2 h-full w-full">
+          <div className={`grid gap-2 p-2 h-full w-full ${
+            resultImages.length === 1 ? 'grid-cols-1' : 'grid-cols-2'
+          }`}>
             {resultImages.map((imgUrl, idx) => (
               <div
                 key={idx}
