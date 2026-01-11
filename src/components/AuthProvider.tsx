@@ -1,24 +1,35 @@
 "use client";
 
-import { useEffect, useState, createContext, useContext } from 'react';
+import { useEffect, useState, createContext, useContext, useCallback } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
 import { createClient } from '@/lib/supabase';
 import type { User } from '@supabase/supabase-js';
 
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
+  signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
   isLoading: true,
+  signOut: async () => {},
 });
 
 export const useAuth = () => useContext(AuthContext);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
+  const pathname = usePathname();
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  const signOut = useCallback(async () => {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push('/login');
+  }, [router]);
 
   useEffect(() => {
     const supabase = createClient();
@@ -28,17 +39,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (session?.user) {
         setUser(session.user);
-        setIsLoading(false);
-      } else {
-        // 세션이 없으면 익명 로그인
-        const { data, error } = await supabase.auth.signInAnonymously();
-        if (error) {
-          console.error('Anonymous sign-in failed:', error);
-        } else {
-          setUser(data.user);
-        }
-        setIsLoading(false);
+      } else if (pathname !== '/login') {
+        // 로그인되지 않았으면 로그인 페이지로 리다이렉트
+        router.push('/login');
       }
+      setIsLoading(false);
     };
 
     initAuth();
@@ -47,11 +52,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         setUser(session?.user ?? null);
+        if (!session?.user && pathname !== '/login') {
+          router.push('/login');
+        }
       }
     );
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [pathname, router]);
 
   if (isLoading) {
     return (
@@ -62,7 +70,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, isLoading }}>
+    <AuthContext.Provider value={{ user, isLoading, signOut }}>
       {children}
     </AuthContext.Provider>
   );
