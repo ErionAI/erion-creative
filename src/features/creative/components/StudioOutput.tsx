@@ -27,8 +27,8 @@ export function StudioOutput({
   const { setFocusedItemIndex } = useCreativeStore();
 
   return (
-    <section className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-6 flex flex-col shadow-inner min-h-[500px]">
-      <h2 className="text-lg font-semibold mb-4">Studio Output</h2>
+    <section className="bg-zinc-900/50 border border-zinc-800 rounded-xl md:rounded-2xl p-4 md:p-6 flex flex-col shadow-inner min-h-[300px] md:min-h-[500px]">
+      <h2 className="text-base md:text-lg font-semibold mb-3 md:mb-4">Studio Output</h2>
 
       <div className="flex-1 bg-black/20 rounded-xl border-2 border-dashed border-zinc-800 flex flex-col items-center justify-center relative overflow-hidden">
         {status === AppStatus.IDLE && !resultImages.length && !resultVideo && (

@@ -137,11 +137,11 @@ export function VideoMode() {
         </Panel>
 
         <Panel icon={Settings2} title="Configuration">
-          <div className="mb-6">
-            <label className="text-xs text-zinc-500 font-medium uppercase tracking-wider mb-3 block flex items-center gap-2">
+          <div className="mb-4 md:mb-6">
+            <label className="text-xs text-zinc-500 font-medium uppercase tracking-wider mb-2 md:mb-3 block flex items-center gap-2">
               <Scaling className="w-3.5 h-3.5" /> Resolution
             </label>
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-1.5 md:gap-2">
               {RESOLUTIONS.map((res) => (
                 <button
                   key={res}
@@ -158,11 +158,11 @@ export function VideoMode() {
             </div>
           </div>
 
-          <div className="mb-6">
-            <label className="text-xs text-zinc-500 font-medium uppercase tracking-wider mb-3 block flex items-center gap-2">
+          <div className="mb-4 md:mb-6">
+            <label className="text-xs text-zinc-500 font-medium uppercase tracking-wider mb-2 md:mb-3 block flex items-center gap-2">
               <Frame className="w-3.5 h-3.5" /> Aspect Ratio
             </label>
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-4 gap-1.5 md:gap-2">
               {ASPECT_RATIOS.map((ratio) => (
                 <button
                   key={ratio}
@@ -183,10 +183,10 @@ export function VideoMode() {
             value={prompt}
             onChange={(e) => setState(s => ({ ...s, prompt: e.target.value }))}
             placeholder="Describe the motion, scene, and details..."
-            className="w-full bg-zinc-950 border border-zinc-700 rounded-xl p-4 text-zinc-200 h-32 focus:ring-2 focus:ring-indigo-500/50 outline-none mb-4"
+            className="w-full bg-zinc-950 border border-zinc-700 rounded-xl p-3 md:p-4 text-zinc-200 text-sm md:text-base h-24 md:h-32 focus:ring-2 focus:ring-indigo-500/50 outline-none mb-3 md:mb-4"
           />
 
-          <Button onClick={handleGenerate} isLoading={status === AppStatus.PROCESSING} className="w-full py-4 text-lg">
+          <Button onClick={handleGenerate} isLoading={status === AppStatus.PROCESSING} className="w-full py-3 md:py-4 text-base md:text-lg">
             <Sparkles className="w-5 h-5" />
             Create Cinematic Video
           </Button>
