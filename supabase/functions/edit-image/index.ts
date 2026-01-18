@@ -114,7 +114,14 @@ async function processEdit(
       }
 
       const buffer = await fileData.arrayBuffer();
-      const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)));
+      const bytes = new Uint8Array(buffer);
+      let base64 = '';
+      const chunkSize = 8192;
+      for (let i = 0; i < bytes.length; i += chunkSize) {
+        const chunk = bytes.slice(i, i + chunkSize);
+        base64 += String.fromCharCode(...chunk);
+      }
+      base64 = btoa(base64);
       sourceImages.push({ data: base64, mimeType: resource.mime_type });
     }
 
@@ -180,7 +187,12 @@ async function processEdit(
     const resultUrls: string[] = [];
     for (let i = 0; i < successfulResults.length; i++) {
       const base64Data = successfulResults[i];
-      const buffer = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
+      const binaryString = atob(base64Data);
+      const len = binaryString.length;
+      const buffer = new Uint8Array(len);
+      for (let j = 0; j < len; j++) {
+        buffer[j] = binaryString.charCodeAt(j);
+      }
       const path = `images/${userId}/${generationId}/${i}.png`;
 
       const { error: uploadError } = await supabase.storage

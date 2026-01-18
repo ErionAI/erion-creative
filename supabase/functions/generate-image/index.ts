@@ -140,7 +140,12 @@ async function processGeneration(
     const resultUrls: string[] = [];
     for (let i = 0; i < successfulResults.length; i++) {
       const base64Data = successfulResults[i];
-      const buffer = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
+      const binaryString = atob(base64Data);
+      const len = binaryString.length;
+      const buffer = new Uint8Array(len);
+      for (let j = 0; j < len; j++) {
+        buffer[j] = binaryString.charCodeAt(j);
+      }
       const path = `images/${userId}/${generationId}/${i}.png`;
 
       const { error: uploadError } = await supabase.storage

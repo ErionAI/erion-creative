@@ -105,7 +105,14 @@ async function processVideo(
 
         if (fileData) {
           const buffer = await fileData.arrayBuffer();
-          const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)));
+          const bytes = new Uint8Array(buffer);
+          let base64 = '';
+          const chunkSize = 8192;
+          for (let i = 0; i < bytes.length; i += chunkSize) {
+            const chunk = bytes.slice(i, i + chunkSize);
+            base64 += String.fromCharCode(...chunk);
+          }
+          base64 = btoa(base64);
           sourceImage = { data: base64, mimeType: resource.mime_type };
         }
       }
@@ -143,19 +150,25 @@ async function processVideo(
       throw new Error('Video generation failed: No download link returned');
     }
 
-    // Download video
+    // Download video with streaming
     const videoResponse = await fetch(`${downloadLink}&key=${apiKey}`);
     if (!videoResponse.ok) {
       throw new Error(`Failed to download video: ${videoResponse.statusText}`);
     }
 
-    const videoBuffer = await videoResponse.arrayBuffer();
+    if (!videoResponse.body) {
+      throw new Error('No response body for video download');
+    }
+
     const path = `videos/${userId}/${generationId}/output.mp4`;
+
+    // Download as blob to reduce memory usage
+    const videoBlob = await videoResponse.blob();
 
     // Upload to storage
     const { error: uploadError } = await supabase.storage
       .from('assets')
-      .upload(path, new Uint8Array(videoBuffer), { contentType: 'video/mp4' });
+      .upload(path, videoBlob, { contentType: 'video/mp4' });
 
     if (uploadError) {
       throw new Error(`Failed to upload video: ${uploadError.message}`);
