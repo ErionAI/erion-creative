@@ -4,19 +4,19 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase';
 import { Button } from '@/components/Button';
+import { useToast } from '@/components/Toast';
 import { Mail, Lock, LogIn } from 'lucide-react';
 
 export default function LoginPage() {
   const router = useRouter();
+  const { showToast } = useToast();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setError(null);
 
     const supabase = createClient();
 
@@ -26,7 +26,7 @@ export default function LoginPage() {
     });
 
     if (error) {
-      setError(error.message);
+      showToast(error.message, 'error');
     } else {
       router.push('/');
       router.refresh();
@@ -79,12 +79,6 @@ export default function LoginPage() {
                 />
               </div>
             </div>
-
-            {error && (
-              <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 text-red-400 text-sm">
-                {error}
-              </div>
-            )}
 
             <Button type="submit" isLoading={isLoading} className="w-full py-3">
               <LogIn className="w-5 h-5" />
