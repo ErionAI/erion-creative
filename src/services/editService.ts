@@ -1,6 +1,8 @@
 import { createClient } from '@/lib/supabase';
 import { ModelTier, Resolution, AspectRatio, VariationCount } from '@/types';
 
+const API_BASE_URL = 'https://erion-api.dorong.net/api';
+
 export interface EditImageParams {
   resourceIds: string[];
   prompt: string;
@@ -59,20 +61,27 @@ export const startImageEdit = async (
     throw new Error('Authentication required');
   }
 
-  const response = await supabase.functions.invoke('edit-image', {
-    body: {
+  const response = await fetch(`${API_BASE_URL}/edit-image`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${session.access_token}`,
+    },
+    body: JSON.stringify({
       prompt: params.prompt,
       model_tier: params.modelTier,
       resolution: params.resolution,
       aspect_ratio: params.aspectRatio,
       variations: params.variations,
       resource_ids: params.resourceIds,
-    },
+    }),
   });
 
-  if (response.error) {
-    throw new Error(response.error.message || 'Failed to start edit');
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.message || 'Failed to start edit');
   }
 
-  return response.data.generation_id;
+  const data = await response.json();
+  return data.generation_id;
 };

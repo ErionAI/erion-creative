@@ -1,6 +1,8 @@
 import { createClient } from '@/lib/supabase';
 import { ModelTier, Resolution, AspectRatio, VariationCount } from '@/types';
 
+const API_BASE_URL = 'https://erion-api.dorong.net/api';
+
 export interface GenerateImageParams {
   prompt: string;
   modelTier: ModelTier;
@@ -19,19 +21,26 @@ export const startImageGeneration = async (
     throw new Error('Authentication required');
   }
 
-  const response = await supabase.functions.invoke('generate-image', {
-    body: {
+  const response = await fetch(`${API_BASE_URL}/generate-image`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${session.access_token}`,
+    },
+    body: JSON.stringify({
       prompt: params.prompt,
       model_tier: params.modelTier,
       resolution: params.resolution,
       aspect_ratio: params.aspectRatio,
       variations: params.variations,
-    },
+    }),
   });
 
-  if (response.error) {
-    throw new Error(response.error.message || 'Failed to start generation');
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.message || 'Failed to start generation');
   }
 
-  return response.data.generation_id;
+  const data = await response.json();
+  return data.generation_id;
 };

@@ -1,6 +1,8 @@
 import { createClient } from '@/lib/supabase';
 import { VideoResolution, AspectRatio } from '@/types';
 
+const API_BASE_URL = 'https://erion-api.dorong.net/api';
+
 export interface GenerateVideoParams {
   prompt: string;
   resolution: VideoResolution;
@@ -18,18 +20,25 @@ export const startVideoGeneration = async (
     throw new Error('Authentication required');
   }
 
-  const response = await supabase.functions.invoke('generate-video', {
-    body: {
+  const response = await fetch(`${API_BASE_URL}/generate-video`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${session.access_token}`,
+    },
+    body: JSON.stringify({
       prompt: params.prompt,
       resolution: params.resolution,
       aspect_ratio: params.aspectRatio,
       resource_id: params.resourceId,
-    },
+    }),
   });
 
-  if (response.error) {
-    throw new Error(response.error.message || 'Failed to start video generation');
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.message || 'Failed to start video generation');
   }
 
-  return response.data.generation_id;
+  const data = await response.json();
+  return data.generation_id;
 };
