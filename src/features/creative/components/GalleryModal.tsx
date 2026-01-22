@@ -4,6 +4,7 @@ import { useCallback, useState, useEffect } from 'react';
 import { Download, XCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useCreativeStore } from '../store';
 import { useToast } from '@/components/Toast';
+import { downloadFile } from '@/lib/download';
 
 export function GalleryModal() {
   const { gallery, focusedItemIndex, setFocusedItemIndex } = useCreativeStore();
@@ -20,17 +21,10 @@ export function GalleryModal() {
   const handleDownload = useCallback(async () => {
     if (!focusedItem || !currentUrl) return;
     try {
-      const response = await fetch(currentUrl);
-      const blob = await response.blob();
-      const blobUrl = URL.createObjectURL(blob);
-      const extension = focusedItem.type === 'video' ? 'mp4' : 'png';
-      const link = document.createElement('a');
-      link.href = blobUrl;
-      link.download = `erion-${focusedItem.type}-${Date.now()}.${extension}`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(blobUrl);
+      await downloadFile({
+        url: currentUrl,
+        type: focusedItem.type === 'video' ? 'video' : 'image',
+      });
     } catch (error) {
       console.error('Download failed:', error);
     }

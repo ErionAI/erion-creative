@@ -2,6 +2,7 @@
 
 import { useCallback } from 'react';
 import { Download, XCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { downloadFile } from '@/lib/download';
 
 interface MediaModalProps {
   type: 'image' | 'video';
@@ -13,7 +14,6 @@ interface MediaModalProps {
 }
 
 export function MediaModal({
-  type,
   resultImages = [],
   resultVideo = null,
   selectedIndex,
@@ -25,21 +25,14 @@ export function MediaModal({
     const url = resultVideo || resultImages[selectedIndex || 0];
     if (!url) return;
     try {
-      const response = await fetch(url);
-      const blob = await response.blob();
-      const blobUrl = URL.createObjectURL(blob);
-      const extension = resultVideo ? 'mp4' : 'png';
-      const link = document.createElement('a');
-      link.href = blobUrl;
-      link.download = `erion-${type}-${Date.now()}.${extension}`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(blobUrl);
+      await downloadFile({
+        url,
+        type: resultVideo ? 'video' : 'image',
+      });
     } catch (error) {
       console.error('Download failed:', error);
     }
-  }, [resultVideo, resultImages, selectedIndex, type]);
+  }, [resultVideo, resultImages, selectedIndex]);
 
   const nextItem = () => {
     if (selectedIndex !== null && resultImages.length > 0) {
