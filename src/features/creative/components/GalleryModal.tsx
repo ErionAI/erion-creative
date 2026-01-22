@@ -3,9 +3,11 @@
 import { useCallback, useState, useEffect } from 'react';
 import { Download, XCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useCreativeStore } from '../store';
+import { useToast } from '@/components/Toast';
 
 export function GalleryModal() {
   const { gallery, focusedItemIndex, setFocusedItemIndex } = useCreativeStore();
+  const { showToast } = useToast();
   const [imageIndex, setImageIndex] = useState(0);
 
   const focusedItem = focusedItemIndex !== null ? gallery[focusedItemIndex] : null;
@@ -35,6 +37,12 @@ export function GalleryModal() {
   }, [focusedItem, currentUrl]);
 
   const handleClose = () => setFocusedItemIndex(null);
+
+  const handleCopyPrompt = useCallback(async () => {
+    if (!focusedItem?.prompt) return;
+    await navigator.clipboard.writeText(focusedItem.prompt);
+    showToast('Prompt copied to clipboard', 'success');
+  }, [focusedItem, showToast]);
 
   const nextItem = () => {
     if (focusedItemIndex !== null && gallery.length > 1) {
@@ -125,7 +133,11 @@ export function GalleryModal() {
 
         {/* Info and download */}
         <div className="flex flex-col items-center gap-3">
-          <p className="text-zinc-400 text-sm italic max-w-md text-center line-clamp-2">&ldquo;{focusedItem.prompt}&rdquo;</p>
+          <p
+            onClick={handleCopyPrompt}
+            className="text-zinc-400 text-sm italic max-w-md text-center line-clamp-2 cursor-pointer hover:text-zinc-300 transition-colors"
+            title="Click to copy"
+          >&ldquo;{focusedItem.prompt}&rdquo;</p>
           <button
             onClick={handleDownload}
             className="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-full font-medium shadow-lg hover:shadow-indigo-500/25 transition-all flex items-center gap-2 text-sm cursor-pointer"
