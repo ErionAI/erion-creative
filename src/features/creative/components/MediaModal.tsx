@@ -21,16 +21,24 @@ export function MediaModal({
   onIndexChange,
 }: MediaModalProps) {
 
-  const handleDownload = useCallback(() => {
+  const handleDownload = useCallback(async () => {
     const url = resultVideo || resultImages[selectedIndex || 0];
     if (!url) return;
-    const extension = resultVideo ? 'mp4' : 'png';
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `erion-${type}-${Date.now()}.${extension}`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const extension = resultVideo ? 'mp4' : 'png';
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = `erion-${type}-${Date.now()}.${extension}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(blobUrl);
+    } catch (error) {
+      console.error('Download failed:', error);
+    }
   }, [resultVideo, resultImages, selectedIndex, type]);
 
   const nextItem = () => {

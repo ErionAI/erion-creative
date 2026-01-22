@@ -15,15 +15,23 @@ export function GalleryModal() {
     setImageIndex(0);
   }, [focusedItemIndex]);
 
-  const handleDownload = useCallback(() => {
+  const handleDownload = useCallback(async () => {
     if (!focusedItem || !currentUrl) return;
-    const extension = focusedItem.type === 'video' ? 'mp4' : 'png';
-    const link = document.createElement('a');
-    link.href = currentUrl;
-    link.download = `erion-${focusedItem.type}-${Date.now()}.${extension}`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    try {
+      const response = await fetch(currentUrl);
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const extension = focusedItem.type === 'video' ? 'mp4' : 'png';
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = `erion-${focusedItem.type}-${Date.now()}.${extension}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(blobUrl);
+    } catch (error) {
+      console.error('Download failed:', error);
+    }
   }, [focusedItem, currentUrl]);
 
   const handleClose = () => setFocusedItemIndex(null);
