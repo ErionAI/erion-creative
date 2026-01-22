@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { X, Plus } from 'lucide-react';
 import { UploadedFile } from '@/components/FileUpload';
 import { ImageFile } from '@/types';
@@ -19,29 +19,55 @@ export function ImageGrid({
   onRemoveImage,
 }: ImageGridProps) {
   const addMoreInputRef = useRef<HTMLInputElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
+
+  const processFiles = (files: File[]) => {
+    const imageFiles = files.filter(f => f.type.startsWith('image/'));
+    if (imageFiles.length === 0) return;
+
+    const promises = imageFiles.map(file => {
+      return new Promise<UploadedFile>((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const result = reader.result as string;
+          resolve({
+            file,
+            data: result.split(',')[1],
+            mimeType: file.type,
+            preview: result
+          });
+        };
+        reader.readAsDataURL(file);
+      });
+    });
+    Promise.all(promises).then(onFilesSelected);
+  };
 
   const handleAddMore = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files && files.length > 0) {
-      const fileList = Array.from(files);
-      const promises = fileList.filter(f => f.type.startsWith('image/')).map(file => {
-        return new Promise<UploadedFile>((resolve) => {
-          const reader = new FileReader();
-          reader.onloadend = () => {
-            const result = reader.result as string;
-            resolve({
-              file,
-              data: result.split(',')[1],
-              mimeType: file.type,
-              preview: result
-            });
-          };
-          reader.readAsDataURL(file);
-        });
-      });
-      Promise.all(promises).then(onFilesSelected);
+      processFiles(Array.from(files));
     }
     if (addMoreInputRef.current) addMoreInputRef.current.value = '';
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      processFiles(Array.from(files));
+    }
   };
 
   return (
@@ -60,7 +86,14 @@ export function ImageGrid({
       {multiple && (
         <div
           onClick={() => addMoreInputRef.current?.click()}
-          className="flex flex-col items-center justify-center border-2 border-dashed border-zinc-700 rounded-xl bg-zinc-800/30 hover:bg-zinc-800/50 cursor-pointer aspect-video overflow-hidden"
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          className={`flex flex-col items-center justify-center border-2 border-dashed rounded-xl cursor-pointer aspect-video overflow-hidden transition-all ${
+            isDragging
+              ? 'border-indigo-500 bg-indigo-500/10'
+              : 'border-zinc-700 bg-zinc-800/30 hover:bg-zinc-800/50'
+          }`}
         >
           <input
             ref={addMoreInputRef}
