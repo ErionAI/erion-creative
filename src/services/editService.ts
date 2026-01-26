@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase';
 import { ModelTier, Resolution, AspectRatio, VariationCount } from '@/types';
 
-const API_BASE_URL = 'http://localhost:3000/api'; //'https://erion-api.dorong.net/api';
+const API_BASE_URL = 'https://erion-api.dorong.net/api';
 
 export interface EditImageParams {
   resourceIds: string[];
